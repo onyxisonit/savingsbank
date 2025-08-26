@@ -1,8 +1,8 @@
 package com.example.bank.domain;
-import com.example.bank.domain.TransactionType;
 
 import java.util.UUID;
 import java.util.Objects;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -13,7 +13,7 @@ public class Transaction {
     private final TransactionType type;
     private final UUID fromAccountId;
     private final UUID toAccountId;
-    private final double amount;  
+    private final BigDecimal amount;  
     private final String description;
 
     public Transaction(UUID id, 
@@ -22,7 +22,7 @@ public class Transaction {
                         TransactionType type,
                         UUID fromAccountId, 
                         UUID toAccountId, 
-                        double amount, 
+                        BigDecimal amount, 
                         String description) {
         this.id = Objects.requireNonNull(id, "Transaction ID cannot be null");
         this.timestamp = Objects.requireNonNull(timestamp, "Timestamp cannot be null");
@@ -30,7 +30,7 @@ public class Transaction {
         this.type = Objects.requireNonNull(type, "Transaction type cannot be null");
         this.fromAccountId = fromAccountId; // can be null for deposits
         this.toAccountId = toAccountId;     // can be null for withdrawals
-        if (amount <= 0) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Transaction amount must be positive");
         }
         this.amount = amount;
@@ -61,7 +61,7 @@ public class Transaction {
         return toAccountId;
     }
 
-    public double getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 

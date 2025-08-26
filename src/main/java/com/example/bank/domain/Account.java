@@ -1,27 +1,22 @@
 package com.example.bank.domain;
 
-import com.example.bank.domain.AccountType; 
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock; //same thread can acquire the lock multiple times, balance thread needs atomicity
 
-private final AccountType accountType; 
-
 public class Account {
     private final UUID id;
     private final UUID customerId;
-    private final String accountType;
-    private double balance;
+    private final AccountType accountType;
+    private BigDecimal balance;
     private final ReentrantLock lock = new ReentrantLock(); //manual lock to protect shared, mutable state 
 
-    public Account(UUID id, UUID customerId, String accountType, double initialBalance) {
+    public Account(UUID id, UUID customerId, AccountType accountType, BigDecimal initialBalance) {
         this.id = Objects.requireNonNull(id, "Account ID cannot be null");
         this.customerId = Objects.requireNonNull(customerId, "Customer ID cannot be null");
         this.accountType = Objects.requireNonNull(accountType, "Account type cannot be null");
-        if (initialBalance < 0) {
-            throw new IllegalArgumentException("Initial balance cannot be negative");
-        }
-        this.balance = initialBalance;
+        this.balance = initialBalance == null ? BigDecimal.ZERO : initialBalance;
     }
 
     public UUID getId() {
@@ -32,11 +27,11 @@ public class Account {
         return customerId;
     }
 
-    public String getAccountType() {
+    public AccountType getAccountType() {
         return accountType;
     }
 
-    public double getBalance() {
+    public BigDecimal getBalance() {
         return balance;
     }
 
@@ -44,20 +39,20 @@ public class Account {
         return lock;
     }
 
-    public void deposit(double amount) {
-        if (amount <= 0) {
+    public void deposit(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Deposit amount must be positive");
         }
-        balance += amount;
+        balance = balance.add(amount);
     }
 
-    public void withdraw(double amount) {
-        if (amount <= 0) {
+    public void withdraw(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Withdrawal amount must be positive");
         }
-        if (amount > balance) {
-            throw new IllegalArgumentException("Insufficient funds");
+        if (balance.compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient funds for withdrawal");
         }
-        balance -= amount;
+        balance = balance.subtract(amount);
     }
 }
