@@ -1,7 +1,9 @@
+package com.example.bank;
+
 import java.time.Clock;
 import java.time.ZoneId;
 
-import com.example.bank.domain.Account;
+import com.example.bank.cli.ConsoleApp;
 import com.example.bank.repository.BankRepository;
 import com.example.bank.service.AccountService;
 import com.example.bank.service.PaymentService;
@@ -22,6 +24,6 @@ public class Main {
         PaymentService paymentService = new PaymentService(repo, clock, businessZone);
         ReportService reports = new ReportService(repo);
 
-        new ConsoleApp(repo, accounts, transfers, payments, reports).run();
+        new ConsoleApp(repo, accountService, transferService, paymentService, reports).run();
     }
 }

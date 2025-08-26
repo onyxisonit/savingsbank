@@ -28,7 +28,7 @@ public class ReportService {
         this.repo = Objects.requireNonNull(repo, "BankRepository cannot be null");
     }
 
-    public BankReport genetateBankReport(int topNAccounts, Duration lookback) {
+    public BankReport generateBankReport(int topNAccounts, Duration lookback) {
         ExecutorService pool = Executors.newFixedThreadPool(4);
         try {
             Callable<BigDecimal> totalBalanceTask = () ->
