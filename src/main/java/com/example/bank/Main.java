@@ -12,7 +12,6 @@ import com.example.bank.service.TransferService;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Welcome to the Bank Application!");
 
         Clock clock = Clock.systemUTC();
         ZoneId businessZone = ZoneId.of("America/New_York");

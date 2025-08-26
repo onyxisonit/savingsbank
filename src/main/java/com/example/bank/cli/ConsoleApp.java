@@ -1,10 +1,13 @@
 package com.example.bank.cli;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.UUID;
 
 import com.example.bank.domain.AccountType;
+import com.example.bank.domain.Customer;
 import com.example.bank.repository.BankRepository;
 import com.example.bank.service.AccountService;
 import com.example.bank.service.PaymentService;
@@ -68,74 +71,52 @@ public class ConsoleApp {
     }
 
     private void createCustomer() {
-        System.out.print("Enter customer name: ");
-        String name = scanner.nextLine();
-        System.out.print("Enter customer email: ");
-        String email = scanner.nextLine();
+        String name = readNonEmpty("Enter customer name: ");
+        String email = readNonEmptyEmail("Enter customer email: ");
 
-        var customer = repo.addCustomer(name, email);
+        var customer = repo.addCustomer(name.trim(), email.trim());
         System.out.println("Customer created with ID: " + customer.getId());
     }
 
     private void createAccount() {
-        System.out.print("Enter customer ID: ");
-        String customerIdStr = scanner.nextLine();
-        System.out.print("Enter account type (CHECKING/SAVINGS): ");
-        String accountTypeStr = scanner.nextLine();
-        System.out.print("Enter initial balance: ");
-        String initialBalanceStr = scanner.nextLine();
+        var customerId = pickCustomer();
+        var accountType = pickAccountType();
+        var initialBalance = readPositiveMoney("Enter initial balance: ");
 
-        var customerId = UUID.fromString(customerIdStr);
-        var accountType = AccountType.valueOf(accountTypeStr.toUpperCase());
-        var initialBalance = new BigDecimal(initialBalanceStr);
-
-        var account = accounts.createAccount(customerId, accountType, initialBalance);
+        var account = accounts.createAccount(customerId.getId(), accountType, initialBalance);
         System.out.println("Account created with ID: " + account.getId());
     }
 
     private void deposit() {
-        System.out.print("Enter account ID: ");
-        String accountIdStr = scanner.nextLine();
-        System.out.print("Enter deposit amount: ");
-        String amountStr = scanner.nextLine();
-        System.out.print("Enter description: ");
-        String description = scanner.nextLine();
-
-        var accountId = UUID.fromString(accountIdStr);
-        var amount = new BigDecimal(amountStr);
+        var accountId = pickAccount();
+        var amount = readPositiveMoney("Enter deposit amount: "); 
+        var description = readNonEmpty("Enter description: ");
 
         accounts.deposit(accountId, amount, description);
         System.out.println("Deposit successful.");
     }
 
     private void transfer() {
-        System.out.print("Enter from account ID: ");
-        String fromAccountIdStr = scanner.nextLine();
-        System.out.print("Enter to account ID: ");
-        String toAccountIdStr = scanner.nextLine();
-        System.out.print("Enter transfer amount: ");
-        String amountStr = scanner.nextLine();
-        System.out.print("Enter description: ");
-        String description = scanner.nextLine();
-
-        var fromAccountId = UUID.fromString(fromAccountIdStr);
-        var toAccountId = UUID.fromString(toAccountIdStr);
-        var amount = new BigDecimal(amountStr);
+        System.out.print("Choose FROM Account:  ");
+        var fromAccountId = pickAccount();
+        System.out.print("Choose TO Account:  ");
+        var toAccountId = pickAccount();
+        if (fromAccountId.equals(toAccountId)) {
+            System.out.println("Error: Cannot transfer to the same account.");
+            return;
+        }
+        var amount = readPositiveMoney("Enter transfer amount: "); 
+        var description = readNonEmpty("Enter description: ");
 
         transfers.transfer(fromAccountId, toAccountId, amount, description);
         System.out.println("Transfer successful.");
     }
 
     private void payment() {
-        System.out.print("Enter from account ID: ");
-        String fromAccountIdStr = scanner.nextLine();
-        System.out.print("Enter payment amount: ");
-        String amountStr = scanner.nextLine();
-        System.out.print("Enter description: ");
-        String description = scanner.nextLine();
-
-        var fromAccountId = UUID.fromString(fromAccountIdStr);
-        var amount = new BigDecimal(amountStr);
+        System.out.print("Choose FROM Account:  ");
+        var fromAccountId = pickAccount();
+        var amount = readPositiveMoney("Enter transfer amount: "); 
+        var description = readNonEmpty("Enter description: ");
 
         payments.pay(fromAccountId, amount, description);
         System.out.println("Payment successful.");
@@ -146,6 +127,105 @@ public class ConsoleApp {
         var report = reports.generateBankReport(5, java.time.Duration.ofDays(30));
         for (var entry : report.balanceByCustomer().entrySet()) {
             System.out.printf("Customer: %s, Total Balance: %s%n", entry.getKey().getName(), entry.getValue());
+        }
+    }
+
+    //Helper methods for input handling and selection
+    private String readLine(String prompt) {
+        System.out.print(prompt);
+        return scanner.nextLine();
+    }
+
+    private String readNonEmpty(String prompt) {
+        while (true) {
+            String input = readLine(prompt);
+            if (!input.trim().isEmpty()) {
+                return input;
+            }
+            System.out.println("Input cannot be empty. Please try again.");
+        }
+    }
+
+    private String readNonEmptyEmail(String prompt) {
+        while (true) {
+            String input = readLine(prompt);
+            if (!input.trim().isEmpty() && input.contains("@") && input.contains(".")) {
+                return input;
+            }
+            System.out.println("Invalid email. Please try again.");
+        }
+    }
+
+    private BigDecimal readPositiveMoney(String prompt) {
+        while (true) {
+            String input = readNonEmpty(prompt);
+            try {
+                BigDecimal amount = new BigDecimal(input).setScale(2, RoundingMode.HALF_UP);
+                if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                    return amount;
+                }
+            } catch (NumberFormatException ignored) {}
+            System.out.println("Invalid amount. Please enter a positive number.");
+        }
+    }
+
+    private Customer pickCustomer() {
+        var customers = new ArrayList<>(repo.getAllCustomers());
+        if (customers.isEmpty()) {
+            throw new IllegalStateException("No customers available. Please create a customer first.");
+        }
+        System.out.println("Available Customers:");
+        for (int i = 0; i < customers.size(); i++) {
+            System.out.printf("%d. %s (ID: %s)%n", i + 1, customers.get(i).getName(), customers.get(i).getId());
+        }
+        while (true) {
+            String input = readLine("Select customer by number: ");
+            try {
+                int index = Integer.parseInt(input) - 1;
+                if (index >= 0 && index < customers.size()) {
+                    return customers.get(index);
+                }
+            } catch (NumberFormatException ignored) {}
+            System.out.println("Invalid selection. Please try again.");
+        }
+    }
+
+    private AccountType pickAccountType() {
+        var types = AccountType.values();
+        System.out.println("Available Account Types:");
+        for (int i = 0; i < types.length; i++) {
+            System.out.printf("%d. %s%n", i + 1, types[i]);
+        }
+        while (true) {
+            String input = readLine("Select account type by number: ");
+            try {
+                int index = Integer.parseInt(input) - 1;
+                if (index >= 0 && index < types.length) {
+                    return types[index];
+                }
+            } catch (NumberFormatException ignored) {}
+            System.out.println("Invalid selection. Please try again.");
+        }
+    }
+    
+    private UUID pickAccount() {
+        var accountsList = new ArrayList<>(repo.getAllAccounts());
+        if (accountsList.isEmpty()) {
+            throw new IllegalStateException("No accounts available. Please create an account first.");
+        }
+        System.out.println("Available Accounts:");
+        for (int i = 0; i < accountsList.size(); i++) {
+            System.out.printf("%d. %s (ID: %s, Balance: %s)%n", i + 1, accountsList.get(i).getCustomerId(), accountsList.get(i).getAccountType(), accountsList.get(i).getId(), accountsList.get(i).getBalance());
+        }
+        while (true) {
+            String input = readLine("Select account by number: ");
+            try {
+                int index = Integer.parseInt(input) - 1;
+                if (index >= 0 && index < accountsList.size()) {
+                    return accountsList.get(index).getId();
+                }
+            } catch (NumberFormatException ignored) {}
+            System.out.println("Invalid selection. Please try again.");
         }
     }
     
