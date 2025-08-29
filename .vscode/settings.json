@@ -1,0 +1,18 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+
+    "editor.codeLens": true,
+
+
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-24",
+            "path": "C:\\Program Files\\jdk-24.0.2",
+            "default": true
+        }   
+    ],
+    "java.jdt.ls.java.home": "C:\\Program Files\\jdk-24.0.2",
+    "java.import.gradle.java.home": "C:\\Program Files\\jdk-24.0.2",
+    "java.import.gradle.wrapper.enabled": true,
+    
+}
